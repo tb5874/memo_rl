@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 
 
 class Bandit:
-    # arms = ½½·Ô¸Ó½Å ¼ö
+    # arms = ìŠ¬ë¡¯ë¨¸ì‹  ìˆ˜
     def __init__(self, arms):
         self.arms = arms
         self.rates = np.random.rand( self.arms )
-            # 0 ~ 1 »çÀÌÀÇ ·£´ı°ªÀ» ½½·Ô¸Ó½Å ¼ö ¸¸Å­ »ı¼º
-            # °¢ ·£´ı°ªÀº ½½·Ô¸Ó½ÅÀÇ ÆĞ¹è È®·ü
-            # »ç¶÷ ÀÔÀå¿¡¼­ (0 ~ ½½·Ô¸Ó½ÅÀÇ ÆĞ¹è È®·ü) ¹üÀ§¾ÈÀÇ °ªÀÌ ³ª¿À¸é ¼º°ø
+            # 0 ~ 1 ì‚¬ì´ì˜ ëœë¤ê°’ì„ ìŠ¬ë¡¯ë¨¸ì‹  ìˆ˜ ë§Œí¼ ìƒì„±
+            # ê° ëœë¤ê°’ì€ ìŠ¬ë¡¯ë¨¸ì‹ ì˜ íŒ¨ë°° í™•ë¥ 
+            # ì‚¬ëŒ ì…ì¥ì—ì„œ (0 ~ ìŠ¬ë¡¯ë¨¸ì‹ ì˜ íŒ¨ë°° í™•ë¥ ) ë²”ìœ„ì•ˆì˜ ê°’ì´ ë‚˜ì˜¤ë©´ ì„±ê³µ
 
     def play(self, arm):
         rate = self.rates[arm]
@@ -31,57 +31,52 @@ class Bandit:
         np.set_printoptions(suppress=True)
         np.set_printoptions(linewidth=1000)
         top_idx = np.argsort(self.rates)[-10:][::-1]
-        for idx in range(0, top) :
+        top_range = (top if len(self.rates) > top else len(self.rates))
+        for idx in range(0, top_range) :
             print("bandit top(", idx, ") : ", f'{top_idx[idx]:5}', " : ", self.rates[top_idx[idx]])
         np.set_printoptions()
 
 class Agent:
-    # Á¤º¸ ÀúÀå¿ë º¯¼ö
+    # ì •ë³´ ì €ì¥ìš© ë³€ìˆ˜
     def __init__(self, arms, epsilon):
         self.arms = arms
         self.info = np.zeros((2, self.arms))
-            # 1Çà : °¢ ½½·Ô¸Ó½ÅÀÇ ´©Àû ÇÃ·¹ÀÌ È½¼ö
-            # 2Çà : °¢ ½½·Ô¸Ó½ÅÀÇ ÇöÀç Q(°¡Ä¡=±â´ë°ª)
+            # 1í–‰ : ê° ìŠ¬ë¡¯ë¨¸ì‹ ì˜ ëˆ„ì  í”Œë ˆì´ íšŸìˆ˜
+            # 2í–‰ : ê° ìŠ¬ë¡¯ë¨¸ì‹ ì˜ í˜„ì¬ Q(ê°€ì¹˜=ê¸°ëŒ€ê°’)
         self.epsilon = epsilon
-            # ¹«ÀÛÀ§·Î Çàµ¿ÇÒ È®·ü(Å½»ö È®·ü)
+            # ë¬´ì‘ìœ„ë¡œ í–‰ë™í•  í™•ë¥ (íƒìƒ‰ í™•ë¥ )
 
-    # ÇØ´çÇÏ´Â ½½·Ô¸Ó½ÅÀÇ ´©Àû ÇÃ·¹ÀÌ¼ö¿Í Q(°¡Ä¡=±â´ë°ª)°»½Å
-        # ¸¶Áö¸·¿¡ ÀÏÁ¤ °¡Ä¡·Î ¼ö·ÅÇÏ°í³ª¸é
-        # ÇØ´ç ½ÃÁ¡¿¡¼­
-        # ¸ğµç ½½·Ô¸Ó½ÅÀÇ ´©Àû ÇÃ·¹ÀÌ¼ö¸¦ µ¿ÀÏÇÏ°Ô ÀÏÄ¡½ÃÄÑ
-        # °¡Ä¡, ±â´ë°ªÀ» Æò°¡ÇÏ°í
-        # ´õ ÁøÇàÇÒÁö ¸»Áö °í·ÁÇÏ´Â°Íµµ ¹æ¹ıÀÏµí ?
     def update(self, arm, reward):
         arm_try = self.info[0,:]
         arm_Q = self.info[1,:]
         arm_try[arm] += 1
         arm_Q[arm] += (reward - arm_Q[arm]) / arm_try[arm]
 
-    # Çàµ¿ ¼±ÅÃ(¥å-Å½¿å Á¤Ã¥)
     def get_action(self):
 
-        case = 0
+        case = 0 # [ Îµ- greedy ]
+        case = 1 # [ UCB, Upper Confidence Bound ]
 
         if (case == 0):
-            # [ ¥å-Å½¿å Á¤Ã¥ ]
-            if np.random.rand() < self.epsilon:
-                # ¹«ÀÛÀ§ Çàµ¿
-                return np.random.randint(0, self.arms)
-            else:
-                # °¡Àå Å« ±â´ë°ªÀ» ¼±ÅÃÇÏ´Â Çàµ¿
-                arm_Q = self.info[1]
-                return np.argmax( arm_Q )
+            # [ Îµ- íƒìš• ì •ì±… ]
+            arm_Q = self.info[1,:]
+            if np.random.rand() < self.epsilon:                
+                return np.random.randint(0, len(arm_Q) ) # ë¬´ì‘ìœ„ í–‰ë™
+            else:                
+                arm_Q = self.info[1,:]
+                return np.argmax( arm_Q ) # ê°€ì¥ í° ê¸°ëŒ€ê°’ì„ ì„ íƒ
         elif(case == 1):
             # [ UCB ]
             arm_try = self.info[0,:]
             arm_Q = self.info[1,:]
+            total_try = sum(arm_try)
             if 0 in arm_try:
-                # ¸ğµç ½½·Ô¸Ó½ÅÀÌ ÃÖ¼Ò 1¹ø¾¿Àº ¼öÇàÇÒ ¼ö ÀÖµµ·Ï Æ®¸¯À» ÁØ´Ù.
-                return np.argmin( arm_try )
+                return np.argmax( arm_try == 0 ) # ëª¨ë“  ìŠ¬ë¡¯ë¨¸ì‹ ì´ ìµœì†Œ 1ë²ˆì”©ì€ ìˆ˜í–‰í•  ìˆ˜ ìˆë„ë¡ íŠ¸ë¦­ì„ ì¤€ë‹¤.
             else:
-                ucb_values = arm_Q + np.sqrt( (2 * np.log( sum(arm_try) ) / self.counts )
+                ucb_values = arm_Q + np.sqrt( (2 * np.log( total_try )) / arm_try  ) # ëª¨ë“  ìŠ¬ë¡¯ë¨¸ì‹ ì˜ UCB ê°’ì„ êµ¬í•œë‹¤.
+                return np.argmax( ucb_values ) # ê°€ì¥ í° ê¸°ëŒ€ê°’ì„ ì„ íƒ
         else:
-            pass
+            print("not yet")
 
     def get_maxQ(self):
         idx = np.argmax( self.info[1] )
@@ -93,24 +88,26 @@ class Agent:
 
 if __name__ == '__main__':
 
-    arms = 100
-    steps = 100000
+    #np.random.seed(1234)
+
+    arms = 10
+    steps = 10000
     epsilon = 0.1
 
     bandit = Bandit(arms)
     agent = Agent(arms, epsilon)
-    reward_sum = 0 # ´©Àû º¸»ó
-    reward_total = [] # ´©Àû ´Ü°èº° º¸»ó
-    rates = [] # ´©Àû ´Ü°èº° ½Â·ü
-    act_arm = [] # ´©Àû ´Ü°èº° Çàµ¿
+    reward_sum = 0 # ëˆ„ì  ë³´ìƒ
+    reward_total = [] # ëˆ„ì  ë‹¨ê³„ë³„ ë³´ìƒ
+    rates = [] # ëˆ„ì  ë‹¨ê³„ë³„ ìŠ¹ë¥ 
+    act_arm = [] # ëˆ„ì  ë‹¨ê³„ë³„ í–‰ë™
 
     for step in range(steps):
-        action = agent.get_action() # Çàµ¿ ¼±ÅÃ
-        reward = bandit.play(action) # ½ÇÁ¦·Î ÇÃ·¹ÀÌÇÏ°í º¸»óÀ» ¹ŞÀ½
-        agent.update(action, reward) # Çàµ¿°ú º¸»óÀ» ÅëÇØ °¢ ½½·Ô¸Ó½ÅÀÇ ±â´ëÄ¡¸¦ °»½Å == ÇĞ½À
-        reward_sum += reward # ÇöÀç±îÁö ÀÌ±ä È½¼ö
-        rates.append( reward_sum / (step + 1) ) # ÇöÀç±îÁö ½Â·ü
-        reward_total.append(reward_sum) # ´©Àû ÇÃ·¹ÀÌ ¸¶´Ù ÀÌ±ä È½¼ö ÀúÀå
+        action = agent.get_action() # í–‰ë™ ì„ íƒ
+        reward = bandit.play(action) # ì‹¤ì œë¡œ í”Œë ˆì´í•˜ê³  ë³´ìƒì„ ë°›ìŒ
+        agent.update(action, reward) # í–‰ë™ê³¼ ë³´ìƒì„ í†µí•´ ê° ìŠ¬ë¡¯ë¨¸ì‹ ì˜ ê¸°ëŒ€ì¹˜ë¥¼ ê°±ì‹  == í•™ìŠµ
+        reward_sum += reward # í˜„ì¬ê¹Œì§€ ì´ê¸´ íšŸìˆ˜
+        rates.append( reward_sum / (step + 1) ) # í˜„ì¬ê¹Œì§€ ìŠ¹ë¥ 
+        reward_total.append(reward_sum) # ëˆ„ì  í”Œë ˆì´ ë§ˆë‹¤ ì´ê¸´ íšŸìˆ˜ ì €ì¥
         act_arm.append(action)
 
     print("total try : ", steps, "\n")
@@ -132,7 +129,4 @@ if __name__ == '__main__':
     plt.ylabel('Action')
     plt.xlabel('Steps')
     plt.scatter(range(len(act_arm)), act_arm, s=1)
-    #for i in range(len(act_arm)):
-    #    plt.text(i, act_arm[i], f'{act_arm[i]}', fontsize=5)    
-    #plt.yticks(np.arange(0, arms, 1))
     plt.show()    
